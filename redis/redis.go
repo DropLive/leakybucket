@@ -128,11 +128,20 @@ func (s *Storage) Create(name string, capacity uint, rate time.Duration) (leakyb
 	}
 }
 
-// New initializes the connection to redis.
-func New(network, address string) (*Storage, error) {
+// NewBucket initializes the connection to redis.
+func NewBucket(network, address string, password string) (*Storage, error) {
 	s := &Storage{
 		pool: redis.NewPool(func() (redis.Conn, error) {
-			return redis.Dial(network, address)
+			c, _ := redis.Dial(network, address)
+
+			if "" != password {
+				if _, err := c.Do("AUTH", password); err != nil {
+					c.Close()
+					return nil, err
+				}
+			}
+
+			return c, nil
 		}, 5)}
 	// When using a connection pool, you only get connection errors while trying to send commands.
 	// Try to PING so we can fail-fast in the case of invalid address.
