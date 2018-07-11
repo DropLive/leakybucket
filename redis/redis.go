@@ -1,12 +1,13 @@
 package redis
 
 import (
-	"github.com/Clever/leakybucket"
+	"github.com/Clever/leakyBucket"
 	"github.com/garyburd/redigo/redis"
 	"time"
 )
 
-type bucket struct {
+// Bucket object
+type Bucket struct {
 	name                string
 	capacity, remaining uint
 	reset               time.Time
@@ -14,27 +15,29 @@ type bucket struct {
 	pool                *redis.Pool
 }
 
-func (b *bucket) Capacity() uint {
+// Capacity of Bucket
+func (b *Bucket) Capacity() uint {
 	return b.capacity
 }
 
-// Remaining space in the bucket.
-func (b *bucket) Remaining() uint {
+// Remaining space in the Bucket.
+func (b *Bucket) Remaining() uint {
 	return b.remaining
 }
 
-// Reset returns when the bucket will be drained.
-func (b *bucket) Reset() time.Time {
+// Reset returns when the Bucket will be drained.
+func (b *Bucket) Reset() time.Time {
 	return b.reset
 }
 
-func (b *bucket) State() leakybucket.BucketState {
-	return leakybucket.BucketState{Capacity: b.Capacity(), Remaining: b.Remaining(), Reset: b.Reset()}
+// State of bucket
+func (b *Bucket) State() leakyBucket.BucketState {
+	return leakyBucket.BucketState{Capacity: b.Capacity(), Remaining: b.Remaining(), Reset: b.Reset()}
 }
 
 var millisecond = int64(time.Millisecond)
 
-func (b *bucket) updateOldReset() error {
+func (b *Bucket) updateOldReset() error {
 	if b.reset.Unix() > time.Now().Unix() {
 		return nil
 	}
@@ -50,8 +53,8 @@ func (b *bucket) updateOldReset() error {
 	return nil
 }
 
-// Add to the bucket.
-func (b *bucket) Add(amount uint) (leakybucket.BucketState, error) {
+// Add to the Bucket.
+func (b *Bucket) Add(amount uint) (leakyBucket.BucketState, error) {
 	conn := b.pool.Get()
 	defer conn.Close()
 
@@ -68,7 +71,7 @@ func (b *bucket) Add(amount uint) (leakybucket.BucketState, error) {
 
 	if amount > b.remaining {
 		b.updateOldReset()
-		return b.State(), leakybucket.ErrorFull
+		return b.State(), leakyBucket.ErrorFull
 	}
 
 	// Go y u no have Milliseconds method? Why only Seconds and Nanoseconds?
@@ -90,13 +93,13 @@ func (b *bucket) Add(amount uint) (leakybucket.BucketState, error) {
 	return b.State(), nil
 }
 
-// Storage is a redis-based, non thread-safe leaky bucket factory.
+// Storage is a redis-based, non thread-safe leaky Bucket factory.
 type Storage struct {
 	pool *redis.Pool
 }
 
-// Create a bucket.
-func (s *Storage) Create(name string, capacity uint, rate time.Duration) (leakybucket.Bucket, error) {
+// Create a Bucket.
+func (s *Storage) Create(name string, capacity uint, rate time.Duration) (leakyBucket.Bucket, error) {
 	conn := s.pool.Get()
 	defer conn.Close()
 
@@ -104,8 +107,8 @@ func (s *Storage) Create(name string, capacity uint, rate time.Duration) (leakyb
 		if err != redis.ErrNil {
 			return nil, err
 		}
-		// return a standard bucket if key was not found
-		return &bucket{
+		// return a standard Bucket if key was not found
+		return &Bucket{
 			name:      name,
 			capacity:  capacity,
 			remaining: capacity,
@@ -116,7 +119,7 @@ func (s *Storage) Create(name string, capacity uint, rate time.Duration) (leakyb
 	} else if ttl, err := redis.Int64(conn.Do("PTTL", name)); err != nil {
 		return nil, err
 	} else {
-		b := &bucket{
+		b := &Bucket{
 			name:      name,
 			capacity:  capacity,
 			remaining: capacity - min(capacity, uint(count)),
