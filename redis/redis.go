@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"github.com/Clever/leakyBucket"
+	"github.com/Clever/leakybucket"
 	"github.com/garyburd/redigo/redis"
 	"time"
 )
@@ -31,8 +31,8 @@ func (b *Bucket) Reset() time.Time {
 }
 
 // State of bucket
-func (b *Bucket) State() leakyBucket.BucketState {
-	return leakyBucket.BucketState{Capacity: b.Capacity(), Remaining: b.Remaining(), Reset: b.Reset()}
+func (b *Bucket) State() leakybucket.BucketState {
+	return leakybucket.BucketState{Capacity: b.Capacity(), Remaining: b.Remaining(), Reset: b.Reset()}
 }
 
 var millisecond = int64(time.Millisecond)
@@ -54,7 +54,7 @@ func (b *Bucket) updateOldReset() error {
 }
 
 // Add to the Bucket.
-func (b *Bucket) Add(amount uint) (leakyBucket.BucketState, error) {
+func (b *Bucket) Add(amount uint) (leakybucket.BucketState, error) {
 	conn := b.pool.Get()
 	defer conn.Close()
 
@@ -71,7 +71,7 @@ func (b *Bucket) Add(amount uint) (leakyBucket.BucketState, error) {
 
 	if amount > b.remaining {
 		b.updateOldReset()
-		return b.State(), leakyBucket.ErrorFull
+		return b.State(), leakybucket.ErrorFull
 	}
 
 	// Go y u no have Milliseconds method? Why only Seconds and Nanoseconds?
@@ -99,7 +99,7 @@ type Storage struct {
 }
 
 // Create a Bucket.
-func (s *Storage) Create(name string, capacity uint, rate time.Duration) (leakyBucket.Bucket, error) {
+func (s *Storage) Create(name string, capacity uint, rate time.Duration) (leakybucket.Bucket, error) {
 	conn := s.pool.Get()
 	defer conn.Close()
 
