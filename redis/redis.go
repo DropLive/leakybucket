@@ -3,7 +3,7 @@ package redis
 import (
 	"time"
 
-	"github.com/DropLive/leakybucket"
+	leakybucket "github.com/DropLive/leakybucket"
 	"github.com/garyburd/redigo/redis"
 )
 
