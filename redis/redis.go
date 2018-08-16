@@ -1,9 +1,9 @@
 package redis
 
 import (
-	"github.com/Clever/leakybucket"
-	"github.com/garyburd/redigo/redis"
 	"time"
+
+	"github.com/garyburd/redigo/redis"
 )
 
 // Bucket object
@@ -135,7 +135,10 @@ func (s *Storage) Create(name string, capacity uint, rate time.Duration) (leakyb
 func NewBucket(network, address string, password string) (*Storage, error) {
 	s := &Storage{
 		pool: redis.NewPool(func() (redis.Conn, error) {
-			c, _ := redis.Dial(network, address)
+			c, err := redis.Dial(network, address)
+			if nil != err {
+				return nil, err
+			}
 
 			if "" != password {
 				if _, err := c.Do("AUTH", password); err != nil {
